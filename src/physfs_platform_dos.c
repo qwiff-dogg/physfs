@@ -93,7 +93,7 @@ char *__PHYSFS_platformCalcBaseDir(const char *argv0)
     int slen = 0;
     int offset;
 
-    regs.x.ax = 0x6200;  /* get number of CD drive letters */
+    regs.x.ax = 0x6200;  /* get PSP segment */
     regs.x.bx = 0x0000;
     __dpmi_int(0x21, &regs);
 
@@ -112,10 +112,11 @@ char *__PHYSFS_platformCalcBaseDir(const char *argv0)
 
     if (zero_count != 2) {
         return NULL;  /* uhoh */
+    } else if (_farpeekw(envsel, offset) < 1) {  /* there's a Uint16 here that represents number of extension strings. In practice it's always 1 and that one string is the path we need. */
+        return NULL;  /* uhoh */
     }
 
-    /* there's a Uint16 here that represents number of extension strings. In practice it's always 1 and that one string is the path we need. */
-    offset += 2;
+    offset += 2;  /* skip past that string count. */
 
     for (i = offset; _farpeekb(envsel, i) != 0; i++) {
         slen++;
@@ -126,15 +127,14 @@ char *__PHYSFS_platformCalcBaseDir(const char *argv0)
     lastbackslash = NULL;
     retval = (char *) allocator.Malloc(slen);
     if (retval) {
-        int i = 0;
-        do {
+        int i;
+        for (i = 0; i < slen; i++) {
             const char ch = (char) _farpeekb(envsel, offset + i);
             retval[i] = ch;
             if (ch == '\\') {
                 lastbackslash = &retval[i];
             }
-            i++;
-        } while (i < slen);
+        }
     }
 
     if (lastbackslash) {
