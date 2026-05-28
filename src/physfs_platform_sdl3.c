@@ -120,16 +120,19 @@ PHYSFS_EnumerateCallbackResult __PHYSFS_platformEnumerate(const char *dirname,
                                                           const char *origdir,
                                                           void *callbackdata)
 {
+    bool rc;
     platformEnumerateContext ctx;
+
     ctx.callback = callback;
     ctx.origdir = origdir;
     ctx.callbackdata = callbackdata;
     ctx.result = PHYSFS_ENUM_OK;
 
-    BAIL_IF(!SDL_EnumerateDirectory(dirname, platformEnumerateCallback, &ctx),
-            /* Determine the correct PhysFS error to report. */
-            ctx.result == PHYSFS_ENUM_ERROR ? PHYSFS_ERR_APP_CALLBACK : PHYSFS_ERR_OS_ERROR,
-            PHYSFS_ENUM_ERROR);
+    rc = SDL_EnumerateDirectory(dirname, platformEnumerateCallback, &ctx);
+    if (!rc) {
+        PHYSFS_setErrorCode((ctx.result == PHYSFS_ENUM_ERROR) ? PHYSFS_ERR_APP_CALLBACK : PHYSFS_ERR_OS_ERROR);
+        return PHYSFS_ENUM_ERROR;
+    }
 
     return ctx.result;
 } /* __PHYSFS_platformEnumerate */
