@@ -89,10 +89,13 @@ char *__PHYSFS_platformCalcUserDir(void)
 
 char *__PHYSFS_platformCalcPrefDir(const char *org, const char *app)
 {
-    char *out = SDL_GetPrefPath(org, app);
-    BAIL_IF(out == NULL, PHYSFS_ERR_OS_ERROR, NULL);
-    /* Unlike SDL_GetBasePath() or SDL_GetUserFolder(), SDL_GetPrefPath() allocates the string for us. */
-    return out;
+    char *sdlprefpath = SDL_GetPrefPath(org, app);
+    char *retval = NULL;
+    BAIL_IF(sdlprefpath == NULL, PHYSFS_ERR_OS_ERROR, NULL);
+    /* SDL_GetPrefPath() allocates the string for us, but we need to strdup it so it uses PhysicsFS's allocator, which might be different than SDL's. */
+    retval = __PHYSFS_strdup(sdlprefpath);
+    SDL_free(sdlprefpath);
+    return retval;
 } /* __PHYSFS_platformCalcPrefDir */
 
 static SDL_EnumerationResult SDLCALL platformEnumerateCallback(void *userdata,
